@@ -30,7 +30,7 @@ uvicorn app.main:app --port 18427
 
 Compose 使用 `audit-data` 命名卷；本地数据库默认为 `data/audits.sqlite3`。可通过 `SHELF_DB_PATH` 指定新数据库。
 
-## 七个业务入口
+## 业务入口
 
 | 模块 | 入口 | 动作 |
 |---|---|---|
@@ -41,7 +41,19 @@ Compose 使用 `audit-data` 命名卷；本地数据库默认为 `data/audits.sq
 | 罚则裁决 | `GET /api/penalties` | 区分缺图、缺品及无法裁决，择一执行罚则 |
 | 结算勾稽 | `GET /api/settlement`、`POST /api/settlement/runs` | 对账预览或生成可复用的结算批次 |
 | 异议复核 | `GET /api/appeals/{run_id}`、`POST /api/appeals/{run_id}/events` | 查看并追加复核事件，核算净额 |
+| 整改下发 | `POST /api/rectification/{run_id}/plans` 等 | 逐柜位落单、按门店合并工单、登记销项与下发版本 |
 
 预检接口接受 `dataset=field` 或 `dataset=reference`，以及可选 `sample_size`。运行提交同名 JSON 字段。使用 `GET /api/settlement/runs/{run_id}` 读取批次，使用 `GET /api/appeals/{run_id}/export` 下载证据。接口目录位于 `/docs`。
+
+### 整改计划
+
+在「整改下发」面板或接口生成计划。每个违规柜位恰好一条任务，任务编号只由批次和柜位决定，因此同一版重试、改判重算都不会复制任务；任务带照片摘要、执行罚则和原额/减免/净额，并与本期结算的柜位、金额逐项勾稽。门店侧按门店合并成一张工单，柜位任务仍可独立追溯、罚则和销项。
+
+- `POST /api/rectification/{run_id}/plans`（`expected_version` 可选）生成或复用计划；同内容不新增版本，改判后只更新相关柜位，旧版本保持可查。
+- `GET /api/rectification/{run_id}/plans` 列出所有版本与现行版；`GET /api/rectification/plans/{plan_id}` 读取任一旧版。
+- `POST /api/rectification/plans/{plan_id}/dispatches`（`request_id`、`actor`）下发；同版重试幂等，失败时返回 502 且现行版仍是上一版。
+- `POST /api/rectification/{run_id}/closures`（`key`、`request_id`、`actor`、`note`、`evidence_ref`）登记柜位销项；同柜只落一次。
+- `GET /api/rectification/{run_id}/tasks/{key}` 逐柜位追溯历次版本、照片与销项。
+
 
 [字段与规则](docs/DATA-DICTIONARY.md) · [测试证据](docs/DEPTH.md)

@@ -14,6 +14,7 @@
 | M5 罚则裁决 | 确定缺品、乱陈、排面和价签的处罚 | `GET /api/penalties` | `app/modules/penalties/rules.py` `app/modules/penalties/service.py` | `tests/test_penalties.py` |
 | M6 结算勾稽 | 按原件、柜位和金额对账并留存批次 | `GET /api/settlement` `POST /api/settlement/runs` | `app/modules/settlement/reconcile.py` `app/modules/settlement/service.py` `app/store.py` | `tests/test_settlement.py` |
 | M7 异议复核 | 留存复核时序、重算净额并导出 | `GET /api/appeals/{run_id}` `POST /api/appeals/{run_id}/events` | `app/modules/appeals/transitions.py` `app/modules/appeals/service.py` | `tests/test_appeals.py` |
+| M8 整改下发 | 逐柜位落单、按门店合并工单、销项与版本下发 | `POST /api/rectification/{run_id}/plans` `POST /api/rectification/plans/{plan_id}/dispatches` | `app/modules/rectification/planner.py` `app/modules/rectification/service.py` `app/store.py` | `tests/test_rectification.py` |
 
 ## 陷阱登记
 
@@ -41,6 +42,10 @@
 | TRAP-26 | `sample_data/field/` 的 `002:A03` 异议测试以旧版本重提 | 覆盖已受理 | 版本锁加唯一请求键 | `app/modules/appeals/transitions.py` `app/store.py` | `tests/test_appeals.py::test_stale_appeal_version_cannot_override_current_stage` |
 | TRAP-27 | `sample_data/field/photos/P002.png` 与 `P010.png` 字节相同且绑不同柜位 | 文件名不同便放行 | 实际 SHA-256 验两侧绑定 | `app/modules/photos/fingerprints.py` `app/modules/photos/bindings.py` | `tests/test_photos.py::test_different_file_names_with_equal_bytes_flag_both_bindings` |
 | TRAP-28 | `sample_data/field/` 的 `001:A04` 缺图、`002:A03` 已完成清点但缺品 | 都当缺品开罚，或都搁置 | 前者待证且 0 元，后者罚 150 元 | `app/modules/coverage/service.py` `app/modules/penalties/rules.py` | `tests/test_penalties.py::test_missing_photo_and_missing_sku_have_distinct_amounts` |
+| TRAP-29 | 改判 `002:A03` 减免 60 元后重算整改计划 | 整张计划重发，门店收到重复任务 | 任务编号只由批次和柜位决定，`diff` 只报该柜位变化，其余任务原样 | `app/modules/rectification/planner.py` | `tests/test_rectification.py::test_appeal_change_only_moves_the_adjusted_slot` |
+| TRAP-30 | 同一版整改计划重试下发 | 每点一次多一批门店任务 | 按计划和 `request_id` 幂等，任务身份不变 | `app/store.py` | `tests/test_rectification.py::test_dispatch_retry_on_same_version_does_not_duplicate_tasks` |
+| TRAP-31 | 下发通道超时后管理员重试 | 半新半旧或旧计划被顶掉 | 失败记 `FAILED` 且现行版保持上一成功版本，新版本仍是草稿可重发 | `app/store.py` | `tests/test_rectification.py::test_failed_dispatch_keeps_previous_version_active` |
+| TRAP-32 | 店长把已销项柜位混进合并工单 | 已整改柜位仍被追缴 | 工单分列 `open_task_ids` 与 `closed_task_ids`，销项按柜位唯一 | `app/modules/rectification/planner.py` | `tests/test_rectification.py::test_closure_closes_one_slot_and_keeps_other_tasks` |
 
 ## 对账
 
@@ -48,3 +53,4 @@
 - 原罚额 29 500 分＝15 000 缺品＋5 500 排面不足＋9 000 错品。
 - 七档原件均按源行号对账。清点表 50＝40 采信＋10 隔离；两条同柜矛盾行有各自来源。
 - 异议记录逐柜追加，最终净额从原罚额减去确认的减免。对账支持同计数但错行、元分混用和重复事件等反例。
+- 整改计划 3 条柜位任务＝`001:A03` 55 元＋`002:A03` 150 元＋`005:A01` 90 元，合计等于本期原罚额 295 元；合并后 3 张门店工单，任务台账合计同为 295 元。改判 `002:A03` 减免 60 元后只有该柜位任务变为 90 元，计划净额 235 元与异议核算一致。

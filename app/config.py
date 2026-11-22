@@ -17,6 +17,7 @@ class Settings:
     def __init__(self, sample_root=None, database=None):
         self.sample_root = Path(sample_root or os.getenv('SHELF_SAMPLE_ROOT', ROOT / 'sample_data'))
         self.database = Path(database or os.getenv('SHELF_DB_PATH', ROOT / 'data' / 'audits.sqlite3'))
+        self.dispatch_fault = os.getenv('SHELF_DISPATCH_FAULT') or None
 
 
 class Options(BaseModel):

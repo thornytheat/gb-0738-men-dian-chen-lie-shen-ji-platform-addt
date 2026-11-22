@@ -11,4 +11,14 @@
     <button class="button primary" id="save-appeal" type="submit">保存复核</button>
     <p id="appeal-feedback" role="status" aria-live="polite" hidden></p>
   </form>
+  <form class="appeal-form" id="rectification-form" hidden>
+    <label>柜位<select name="key" id="closure-key"></select></label>
+    <label>销项经办人<input name="actor" id="closure-actor" maxlength="30" required></label>
+    <label>回执编号<input name="evidence_ref" id="closure-evidence" maxlength="160" required></label>
+    <label class="appeal-note">销项说明<input name="note" id="closure-note" maxlength="160" required></label>
+    <button class="button primary" id="save-closure" type="submit">登记销项</button>
+    <button class="button quiet" id="draft-plan" type="button">生成/刷新整改计划</button>
+    <button class="button" id="dispatch-plan" type="button">下发计划</button>
+    <p id="rectification-feedback" role="status" aria-live="polite" hidden></p>
+  </form>
 </section>

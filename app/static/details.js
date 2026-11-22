@@ -115,6 +115,39 @@ function appeals(root, payload) {
     payload.events.map(row => [row.key, flag(row.status), row.actor, row.evidence_ref, row.note, row.created_at, row.original_rule, row.plan_source])));
 }
 
+function rectification(root, payload) {
+  if (!payload) {
+    root.append(element('p', '先运行审计，再生成整改计划。', 'empty'));
+    return;
+  }
+  const plan = payload.plan;
+  if (!plan) {
+    root.append(element('p', '尚未生成整改计划。每个违规柜位只会落一条任务。', 'empty'));
+    return;
+  }
+  root.append(element('p', `第 ${plan.version} 版 · ${names[plan.status] || plan.status} · `
+    + `柜位任务 ${plan.totals.tasks} · 本版净额 ${money(plan.totals.amount_cents)} 元`, 'panel-meta'));
+  if (payload.active && payload.active.version !== plan.version) {
+    root.append(element('p', `门店当前执行第 ${payload.active.version} 版（${names[payload.active.status] || payload.active.status}）；`
+      + `第 ${plan.version} 版下发前不影响旧计划。`, 'feedback'));
+  }
+  group(root, '按门店下发工单', table([['门店'], ['店名'], ['柜位任务', 'num'], ['待销项', 'num'], ['金额 · 元', 'num']],
+    payload.orders.map(order => [order.store, order.store_title, order.task_ids.length,
+      order.open_tasks, money(order.amount_cents)])));
+  group(root, '柜位任务台账', table([['柜位'], ['罚则'], ['原罚额 · 元', 'num'], ['减免 · 元', 'num'], ['净额 · 元', 'num'],
+    ['证据照片'], ['销项']], payload.tasks.map(task => [task.key, reason(task.rule), money(task.original_cents),
+    money(task.reduction_cents), money(task.amount_cents),
+    task.photos.length ? task.photos.map(pic => `${pic.photo} · ${pic.sha256.slice(0, 12)}`).join(' / ') : '—',
+    task.closed ? '已销项' : '待销项'])));
+  if (payload.diff) {
+    group(root, '本次变化', table([['变更类型'], ['柜位任务']], [
+      ['新增', payload.diff.added.join(' / ') || '—'],
+      ['移除', payload.diff.removed.join(' / ') || '—'],
+      ['更新', payload.diff.changed.join(' / ') || '—'],
+    ]));
+  }
+}
+
 export function details(root, key, payload, options) {
   root.replaceChildren();
   if (!payload) {
@@ -123,5 +156,6 @@ export function details(root, key, payload, options) {
   }
   if (key === 'photos') photos(root, payload, options.dataset);
   else if (key === 'penalties') penalties(root, payload, options.filter);
+  else if (key === 'rectification') rectification(root, payload);
   else ({intake, plans, coverage, settlement, appeals})[key](root, payload);
 }

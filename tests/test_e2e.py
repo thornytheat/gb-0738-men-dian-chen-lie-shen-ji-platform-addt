@@ -12,6 +12,7 @@ def test_home_and_seven_action_entries(client, run):
                        ('penalties', 'rows'), ('settlement', 'original_cents'), (f"appeals/{run['manifest']['run_id']}", 'net_cents')]:
         result = client.get(f'/api/{stage}')
         assert result.status_code == 200 and key in result.json()
+    assert '整改下发' in page.text
 
 
 def test_api_contract_returns_explicit_errors(client):

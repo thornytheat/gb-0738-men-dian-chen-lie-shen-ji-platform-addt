@@ -1,6 +1,7 @@
 export const outcomes = ['COMPLIANT', 'VIOLATION', 'PENDING', 'ISOLATED'];
 export const names = {COMPLIANT: '合规', VIOLATION: '违规', PENDING: '待证', ISOLATED: '隔离', BALANCED: '已勾稽',
   OPEN: '已受理', UPHELD: '维持原罚', WAIVED: '全额免除', REDUCED: '部分减免', NONE: '未发起',
+  DRAFT: '草稿', DISPATCHED: '已下发', SUPERSEDED: '已替代', SENT: '已送达', FAILED: '下发失败',
   RECEIVED: '已收件', EMPTY_FILE: '空档', BLANK_FILE: '空行档', HEADER_ONLY: '仅表头'};
 const dictionary = JSON.parse(document.getElementById('reason-map').textContent);
 export const reason = code => code ? dictionary[code] || code : '—';
